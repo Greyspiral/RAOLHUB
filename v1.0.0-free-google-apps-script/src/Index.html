@@ -1,0 +1,306 @@
+<!doctype html>
+<html>
+<head>
+  <base target="_top">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    :root {
+      --ink: #17324d;
+      --muted: #637083;
+      --line: #d8e0e8;
+      --bg: #f6f8fa;
+      --panel: #ffffff;
+      --accent: #e85d2a;
+      --accent-2: #1f9d8a;
+      --danger: #b42318;
+      --radius: 8px;
+      font-family: Inter, Arial, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--ink); }
+    header { position: sticky; top: 0; z-index: 2; background: var(--panel); border-bottom: 1px solid var(--line); padding: 14px 16px; }
+    h1 { font-size: 18px; margin: 0; }
+    main { padding: 12px; max-width: 1100px; margin: 0 auto; }
+    nav { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 10px 0 14px; }
+    button, input, select, textarea { font: inherit; }
+    button { border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: var(--radius); padding: 10px 12px; cursor: pointer; }
+    button.primary { background: var(--ink); color: #fff; border-color: var(--ink); }
+    button.accent { background: var(--accent); color: #fff; border-color: var(--accent); }
+    button.active { border-color: var(--accent); color: var(--accent); }
+    .grid { display: grid; gap: 10px; }
+    .stats { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+    .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px; }
+    .stat strong { display: block; font-size: 24px; }
+    .muted { color: var(--muted); font-size: 13px; }
+    .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .list { display: grid; gap: 8px; }
+    .item { border: 1px solid var(--line); border-radius: var(--radius); background: #fff; padding: 10px; }
+    .item h3 { margin: 0 0 4px; font-size: 15px; }
+    label { display: block; font-size: 13px; color: var(--muted); margin: 8px 0 4px; }
+    input, select, textarea { width: 100%; border: 1px solid var(--line); border-radius: var(--radius); padding: 10px; background: #fff; color: var(--ink); }
+    textarea { min-height: 90px; resize: vertical; }
+    .two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .hidden { display: none; }
+    .pill { display: inline-flex; border-radius: 999px; padding: 3px 8px; font-size: 12px; background: #edf4f3; color: #0f5d52; margin: 2px 4px 2px 0; }
+    a { color: var(--accent); text-decoration: none; }
+    @media (max-width: 760px) {
+      .stats, .two { grid-template-columns: 1fr; }
+      nav { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Running Academy HUB CRM</h1>
+    <div class="muted" id="setupLine">Načítám...</div>
+  </header>
+  <main>
+    <nav>
+      <button id="tabDashboard" class="active" onclick="showTab('dashboard')">Dashboard</button>
+      <button id="tabClients" onclick="showTab('clients')">Klienti</button>
+      <button id="tabInbox" onclick="showTab('inbox')">Inbox</button>
+      <button id="tabAdmin" onclick="showTab('admin')">Admin</button>
+    </nav>
+
+    <section id="lockScreen" class="card hidden">
+      <h2>Přístup do CRM</h2>
+      <p class="muted">Zadej UI PIN nastavený v Apps Scriptu. PIN zůstane uložený jen v tomto prohlížeči.</p>
+      <label>UI PIN</label>
+      <input id="uiPinInput" type="password" autocomplete="current-password">
+      <button class="primary" onclick="unlockUi()">Odemknout</button>
+    </section>
+
+    <section id="dashboard" class="tab protected">
+      <div class="grid stats" id="stats"></div>
+      <div class="two" style="margin-top:10px">
+        <div class="card">
+          <h2>Kontaktovat</h2>
+          <div id="contactClients" class="list"></div>
+        </div>
+        <div class="card">
+          <h2>Čekající inbox</h2>
+          <div id="dashboardInbox" class="list"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="clients" class="tab protected hidden">
+      <div class="card">
+        <div class="row">
+          <input id="clientSearch" placeholder="Hledat klienta, e-mail, telefon nebo službu" oninput="loadClients()">
+          <button class="primary" onclick="toggleNewClient()">Přidat klienta</button>
+        </div>
+        <div id="newClient" class="hidden">
+          <div class="two">
+            <div><label>Jméno</label><input id="newFirstName"></div>
+            <div><label>Příjmení</label><input id="newLastName"></div>
+          </div>
+          <div class="two">
+            <div><label>E-mail</label><input id="newEmail"></div>
+            <div><label>Telefon</label><input id="newPhone"></div>
+          </div>
+          <label>Služby</label><input id="newServices" placeholder="např. analýza techniky běhu, fyzioterapie pro běžce">
+          <label>Poznámka</label><textarea id="newNote"></textarea>
+          <button class="accent" onclick="createClient()">Uložit klienta</button>
+        </div>
+      </div>
+      <div id="clientsList" class="list" style="margin-top:10px"></div>
+      <div id="clientDetail" class="card hidden" style="margin-top:10px"></div>
+    </section>
+
+    <section id="inbox" class="tab protected hidden">
+      <div class="card">
+        <h2>Inbox</h2>
+        <div id="inboxList" class="list"></div>
+      </div>
+    </section>
+
+    <section id="admin" class="tab protected hidden">
+      <div class="card">
+        <h2>Nastavení</h2>
+        <p class="muted">První setup spusť v Apps Script editoru funkcí <strong>setupCrm()</strong>. Telegram token nastav funkcí <strong>setTelegramBotToken('TOKEN')</strong>, URL aplikace funkcí <strong>setWebAppUrl('URL')</strong> a webhook funkcí <strong>setTelegramWebhook()</strong>.</p>
+        <div id="adminStatus"></div>
+      </div>
+      <div class="card" style="margin-top:10px">
+        <h2>Služby</h2>
+        <div id="serviceList"></div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const boot = <?!= boot ?>;
+    let activeClientId = '';
+    let uiPin = localStorage.getItem('rahUiPin') || '';
+
+    function call(name, ...args) {
+      return new Promise((resolve, reject) => {
+        google.script.run.withSuccessHandler(resolve).withFailureHandler(reject)[name](...args);
+      });
+    }
+
+    function showTab(id) {
+      document.querySelectorAll('.tab').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('nav button').forEach(el => el.classList.remove('active'));
+      document.getElementById(id).classList.remove('hidden');
+      document.getElementById('tab' + id.charAt(0).toUpperCase() + id.slice(1)).classList.add('active');
+      if (id === 'dashboard') loadDashboard();
+      if (id === 'clients') loadClients();
+      if (id === 'inbox') loadInbox();
+    }
+
+    function ensureUnlocked() {
+      if (uiPin) return true;
+      document.querySelectorAll('.protected').forEach(el => el.classList.add('hidden'));
+      document.getElementById('lockScreen').classList.remove('hidden');
+      return false;
+    }
+
+    function unlockUi() {
+      uiPin = document.getElementById('uiPinInput').value;
+      localStorage.setItem('rahUiPin', uiPin);
+      document.getElementById('lockScreen').classList.add('hidden');
+      showTab('dashboard');
+    }
+
+    function renderSetup() {
+      const ok = boot.setup && boot.setup.spreadsheetId;
+      document.getElementById('setupLine').textContent = ok ? 'Systém je nastavený' : 'Je potřeba spustit setupCrm()';
+      document.getElementById('adminStatus').innerHTML = `<pre>${escapeHtml(JSON.stringify(boot.setup, null, 2))}</pre>`;
+      document.getElementById('serviceList').innerHTML = boot.services.map(s => `<span class="pill">${escapeHtml(s)}</span>`).join('');
+    }
+
+    async function loadDashboard() {
+      if (!ensureUnlocked()) return;
+      const data = await call('getDashboardData', uiPin);
+      const stats = [
+        ['Klienti', data.counts.clients],
+        ['Inbox', data.counts.inbox],
+        ['Úkoly', data.counts.openTasks],
+        ['Po termínu', data.counts.dueTasks],
+        ['Kontaktovat', data.counts.contactClients]
+      ];
+      document.getElementById('stats').innerHTML = stats.map(([label, value]) => `<div class="card stat"><strong>${value}</strong><span class="muted">${label}</span></div>`).join('');
+      document.getElementById('contactClients').innerHTML = data.contactClients.map(renderClientItem).join('') || '<p class="muted">Nikdo není k oslovení.</p>';
+      document.getElementById('dashboardInbox').innerHTML = data.inbox.map(renderInboxItem).join('') || '<p class="muted">Inbox je čistý.</p>';
+    }
+
+    async function loadClients() {
+      if (!ensureUnlocked()) return;
+      const query = document.getElementById('clientSearch').value;
+      const clients = await call('searchClients', query, uiPin);
+      document.getElementById('clientsList').innerHTML = clients.map(renderClientItem).join('') || '<p class="muted">Žádní klienti.</p>';
+    }
+
+    function renderClientItem(client) {
+      return `<div class="item" onclick="openClient('${escapeAttr(client['Client ID'])}')">
+        <h3>${escapeHtml(client['Celé jméno'] || client['Client ID'])}</h3>
+        <div class="muted">${escapeHtml(client['Služby'] || '')}</div>
+        <div class="muted">Poslední kontakt: ${escapeHtml(client['Poslední kontakt'] || '-')} | Kontaktovat: ${escapeHtml(client['Kontaktovat dne'] || '-')}</div>
+      </div>`;
+    }
+
+    async function openClient(clientId) {
+      activeClientId = clientId;
+      const detail = await call('getClientDetail', clientId, uiPin);
+      const c = detail.client;
+      document.getElementById('clientDetail').classList.remove('hidden');
+      document.getElementById('clientDetail').innerHTML = `
+        <h2>${escapeHtml(c['Celé jméno'])}</h2>
+        <div class="row">
+          ${c['Odkaz na kartu'] ? `<a href="${escapeAttr(c['Odkaz na kartu'])}" target="_blank">Klientská karta</a>` : ''}
+          ${c['Odkaz na složku'] ? `<a href="${escapeAttr(c['Odkaz na složku'])}" target="_blank">Složka</a>` : ''}
+        </div>
+        <p class="muted">${escapeHtml(c['E-mail'] || '')} ${escapeHtml(c['Telefon'] || '')}</p>
+        <div>${String(c['Služby'] || '').split(',').filter(Boolean).map(s => `<span class="pill">${escapeHtml(s.trim())}</span>`).join('')}</div>
+        <label>Nová poznámka</label>
+        <textarea id="noteText" placeholder="Stručné shrnutí kontaktu, Plaud summary, domluva..."></textarea>
+        <button class="primary" onclick="addNote()">Uložit poznámku</button>
+        <h3>Historie</h3>
+        <div class="list">${detail.notes.map(n => `<div class="item"><strong>${escapeHtml(n['Datum'])}</strong><div>${escapeHtml(n['Shrnutí'])}</div><div class="muted">${escapeHtml(n['Zdroj'])}</div></div>`).join('') || '<p class="muted">Zatím bez historie.</p>'}</div>`;
+      document.getElementById('clientDetail').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    async function addNote() {
+      const text = document.getElementById('noteText').value;
+      if (!text.trim()) return;
+      await call('uiAddNote', activeClientId, text, '', uiPin);
+      document.getElementById('noteText').value = '';
+      await openClient(activeClientId);
+      await loadDashboard();
+    }
+
+    function toggleNewClient() {
+      document.getElementById('newClient').classList.toggle('hidden');
+    }
+
+    async function createClient() {
+      const payload = {
+        firstName: document.getElementById('newFirstName').value,
+        lastName: document.getElementById('newLastName').value,
+        email: document.getElementById('newEmail').value,
+        phone: document.getElementById('newPhone').value,
+        services: document.getElementById('newServices').value,
+        note: document.getElementById('newNote').value,
+        source: 'Web UI',
+        pin: uiPin
+      };
+      const client = await call('uiCreateClient', payload);
+      await loadClients();
+      await openClient(client['Client ID']);
+    }
+
+    async function loadInbox() {
+      if (!ensureUnlocked()) return;
+      const items = await call('getInboxItems', uiPin);
+      document.getElementById('inboxList').innerHTML = items.map(renderInboxItem).join('') || '<p class="muted">Inbox je prázdný.</p>';
+    }
+
+    function renderInboxItem(item) {
+      return `<div class="item">
+        <h3>${escapeHtml(item['Stav'])}</h3>
+        <div>${escapeHtml(item['Text'] || '')}</div>
+        <div class="muted">${escapeHtml(item['Datum'])} | ${escapeHtml(item['Zdroj'])} | ${escapeHtml(item['Důvod'] || '')}</div>
+        ${item['Přílohy'] ? `<div class="muted">${escapeHtml(item['Přílohy'])}</div>` : ''}
+        ${String(item['Stav']).indexOf('Čeká') === 0 ? `
+          <label>Client ID pro uložení</label>
+          <input id="resolve-${escapeAttr(item['Inbox ID'])}" value="${escapeAttr(item['Client ID'] || '')}" placeholder="CLI-XXXXXXX">
+          <div class="row" style="margin-top:8px">
+            <button class="primary" onclick="resolveInbox('${escapeAttr(item['Inbox ID'])}')">Uložit ke klientovi</button>
+            <button onclick="archiveInbox('${escapeAttr(item['Inbox ID'])}')">Archivovat</button>
+          </div>` : ''}
+      </div>`;
+    }
+
+    async function resolveInbox(inboxId) {
+      const clientId = document.getElementById('resolve-' + inboxId).value;
+      if (!clientId.trim()) return;
+      await call('uiResolveInboxItem', inboxId, clientId, uiPin);
+      await loadInbox();
+      await loadDashboard();
+    }
+
+    async function archiveInbox(inboxId) {
+      await call('uiArchiveInboxItem', inboxId, uiPin);
+      await loadInbox();
+      await loadDashboard();
+    }
+
+    function escapeHtml(value) {
+      return String(value == null ? '' : value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function escapeAttr(value) {
+      return escapeHtml(value).replace(/`/g, '&#096;');
+    }
+
+    renderSetup();
+    if (ensureUnlocked()) loadDashboard();
+  </script>
+</body>
+</html>
