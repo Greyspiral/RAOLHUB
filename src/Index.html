@@ -42,6 +42,8 @@
     .two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     .hidden { display: none; }
     .pill { display: inline-flex; border-radius: 999px; padding: 3px 8px; font-size: 12px; background: #edf4f3; color: #0f5d52; margin: 2px 4px 2px 0; }
+    .notice { border-radius: var(--radius); padding: 10px 12px; margin: 10px 0; background: #fff7ed; color: #9a3412; border: 1px solid #fed7aa; }
+    .notice.ok { background: #ecfdf3; color: #05603a; border-color: #abefc6; }
     a { color: var(--accent); text-decoration: none; }
     @media (max-width: 760px) {
       .stats, .two { grid-template-columns: 1fr; }
@@ -55,6 +57,7 @@
     <div class="muted" id="setupLine">Načítám...</div>
   </header>
   <main>
+    <div id="notice" class="notice hidden"></div>
     <nav>
       <button id="tabDashboard" class="active" onclick="showTab('dashboard')">Dashboard</button>
       <button id="tabClients" onclick="showTab('clients')">Klienti</button>
@@ -101,7 +104,7 @@
           </div>
           <label>Služby</label><input id="newServices" placeholder="např. analýza techniky běhu, fyzioterapie pro běžce">
           <label>Poznámka</label><textarea id="newNote"></textarea>
-          <button class="accent" onclick="createClient()">Uložit klienta</button>
+          <button id="saveClientButton" class="accent" onclick="createClient()">Uložit klienta</button>
         </div>
       </div>
       <div id="clientsList" class="list" style="margin-top:10px"></div>
@@ -129,14 +132,25 @@
   </main>
 
   <script>
-    const boot = <?!= boot ?>;
+    const boot = JSON.parse('<?= bootJson ?>');
     let activeClientId = '';
     let uiPin = localStorage.getItem('rahUiPin') || '';
 
     function call(name, ...args) {
       return new Promise((resolve, reject) => {
-        google.script.run.withSuccessHandler(resolve).withFailureHandler(reject)[name](...args);
+        google.script.run
+          .withSuccessHandler(resolve)
+          .withFailureHandler(error => {
+            showNotice(error && error.message ? error.message : String(error || 'Neznámá chyba'));
+            reject(error);
+          })[name](...args);
       });
+    }
+
+    function showNotice(message, ok = false) {
+      const el = document.getElementById('notice');
+      el.textContent = message;
+      el.className = ok ? 'notice ok' : 'notice';
     }
 
     function showTab(id) {
@@ -235,6 +249,11 @@
     }
 
     async function createClient() {
+      const button = document.getElementById('saveClientButton');
+      if (button.disabled) return;
+      button.disabled = true;
+      button.textContent = 'Ukládám...';
+      showNotice('Ukládám klienta...', true);
       const payload = {
         firstName: document.getElementById('newFirstName').value,
         lastName: document.getElementById('newLastName').value,
@@ -245,9 +264,17 @@
         source: 'Web UI',
         pin: uiPin
       };
-      const client = await call('uiCreateClient', payload);
-      await loadClients();
-      await openClient(client['Client ID']);
+      try {
+        const client = await call('uiCreateClient', payload);
+        showNotice('Klient uložený.', true);
+        await loadClients();
+        await openClient(client['Client ID']);
+      } catch (error) {
+        // Error is already shown by call().
+      } finally {
+        button.disabled = false;
+        button.textContent = 'Uložit klienta';
+      }
     }
 
     async function loadInbox() {
