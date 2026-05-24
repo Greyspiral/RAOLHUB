@@ -83,12 +83,12 @@ function createClientCard_(client, folder) {
   const copy = template.makeCopy(cardName, folder);
   const doc = DocumentApp.openById(copy.getId());
   const body = doc.getBody();
-  body.replaceText('{{FULL_NAME}}', client['Celé jméno'] || '');
-  body.replaceText('{{CLIENT_ID}}', client['Client ID'] || '');
-  body.replaceText('{{EMAIL}}', client['E-mail'] || '');
-  body.replaceText('{{PHONE}}', client['Telefon'] || '');
-  body.replaceText('{{SERVICES}}', client['Služby'] || '');
-  body.replaceText('{{STATUS}}', client['Stav'] || '');
+  body.replaceText('\\{\\{FULL_NAME\\}\\}', client['Celé jméno'] || '');
+  body.replaceText('\\{\\{CLIENT_ID\\}\\}', client['Client ID'] || '');
+  body.replaceText('\\{\\{EMAIL\\}\\}', client['E-mail'] || '');
+  body.replaceText('\\{\\{PHONE\\}\\}', client['Telefon'] || '');
+  body.replaceText('\\{\\{SERVICES\\}\\}', client['Služby'] || '');
+  body.replaceText('\\{\\{STATUS\\}\\}', client['Stav'] || '');
   doc.saveAndClose();
   return copy;
 }
