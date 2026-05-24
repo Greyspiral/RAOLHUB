@@ -40,3 +40,7 @@ versions/v1.0.0-free-google-apps-script/
 ```
 
 It contains the Apps Script backend, UI, manifest, and setup docs.
+
+## Sync Status
+
+GitHub connector write access was verified on 2026-05-24.
