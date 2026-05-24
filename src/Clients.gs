@@ -1,4 +1,14 @@
 function upsertClient(input) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    return upsertClientLocked_(input);
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function upsertClientLocked_(input) {
   const data = input || {};
   let firstName = String(data.firstName || data['Jméno'] || '').trim();
   let lastName = String(data.lastName || data['Příjmení'] || '').trim();
